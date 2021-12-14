@@ -1,7 +1,7 @@
 {
     "name": "zh-translate-en",
-    "publisher": "vscode-translate-plugin",
-    "displayName": "中文翻译英文",
+    "publisher": "quanyj",
+    "displayName": "中文翻译英文插件",
     "description": "中文翻译英文",
     "version": "0.0.1",
     "engines": {
@@ -10,6 +10,10 @@
     "categories": [
         "Other"
     ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/qyjandroid/zh-translate-en"
+    },
     "activationEvents": [
         "*"
     ],
@@ -20,22 +24,7 @@
                 "command": "zh-en",
                 "title": "中文转英文"
             }
-        ],
-        "menus": {
-            "editor/context": [
-                {
-                    "when": "editorFocus",
-                    "command": "zh-en",
-                    "group": "navigation"
-                }
-            ],
-            "explorer/context": [
-                {
-                    "command": "zh-en",
-                    "group": "navigation"
-                }
-            ]
-        }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run package",
