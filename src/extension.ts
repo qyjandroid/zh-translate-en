@@ -9,6 +9,14 @@ async function startTrans(words: string) {
     return result;
 }
 
+function isZH(str: string) {
+    const reg = /^[\u4E00-\u9FA5]+$/g;
+    if (!reg.test(str)) {
+        return false;
+    } else {
+        return true;
+    }
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -20,12 +28,10 @@ export function activate(context: vscode.ExtensionContext) {
         provideHover: async (document: vscode.TextDocument, position: vscode.Position) => {
             if (true) {
                 const content = document.getText(document.getWordRangeAtPosition(position)).trim();
-                console.log("content===", content);
                 let curText = content.replace(/[\r\n\s]+/g, '');
-                if (curText.length > 0) {
+                if (curText.length > 0 && isZH(curText)) {
                     const result = await startTrans(curText);
                     const baiduResult = await bdTrans(curText);
-                    console.log("百度result:", baiduResult);
                     if (result) {
                         return new vscode.Hover(`[原词]：${result.query}，\n [有道结果]：${result.resultData}，[百度结果]：${baiduResult}`);
                     }
