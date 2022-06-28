@@ -2,9 +2,21 @@ import MD5 from "./md5";
 const CryptoJS = require("crypto-js");
 const rp = require('request-promise');
 
+
+var ydAppId="",ydAppKey="";
+export function initYDTrans(appId:string,key:string){
+    ydAppId=appId,
+    ydAppKey=key;
+}
+
 export async function ydTrans(query: string, signCode: number) {
-    var appKey = '1a6aac9941685b97';
-    var key = 'ToGENiDNHrAtS9cekllibMi4g4lYcXen';//注意：暴露appSecret，有被盗用造成损失的风险
+    // var appKey = '1d325fe725dcbf33';
+    // var key = 'QTcG2KlRc6NdMlp7MXtkRMGS6mWrZfJV';//注意：暴露appSecret，有被盗用造成损失的风险
+    var appKey= ydAppId;
+    var key= ydAppKey;
+    if(!appKey || !key){
+        return null;
+    }
     var salt = (new Date).getTime();
     var curtime = Math.round(new Date().getTime() / 1000);
     // 多个query可以用\n连接  如 query='apple\norange\nbanana\npear'
@@ -37,7 +49,6 @@ export async function ydTrans(query: string, signCode: number) {
     if (data == null) {
         return null;
     }
-    console.log(data);
     if (data.errorCode != 0) {
         return null;
     }
@@ -117,10 +128,10 @@ export async function bdTrans(query: any) {
     if (result.trans_result == null) {
         return null;
     }
-    let resultData = result.trans_result;
-    if (resultData instanceof Array) {
-        return resultData[0].dst;
+    let resultData = result.trans_result || {};
+    if (resultData instanceof Array && resultData[0]) {
+        return {query:resultData[0].src,resultData:resultData[0].dst};
     }
-    return resultData;
+    return {query:resultData.src,resultData:resultData.dst};
 }
 
