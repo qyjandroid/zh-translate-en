@@ -3,7 +3,7 @@
     "publisher": "quanyj",
     "displayName": "中文翻译英文插件",
     "description": "程序员变量命名神器",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "engines": {
         "vscode": "^1.63.0"
     },
@@ -23,23 +23,44 @@
             {
                 "command": "zh-en",
                 "title": "中文转英文"
+            },
+            {
+                "command": "zh-en.transReplace",
+                "title": "英文替换中文"
+            }
+        ],
+        "keybindings": [ 
+            {
+                "command": "zh-en.transReplace", 
+                "key": "ctrl+alt+r", 
+                "mac": "ctrl+alt+r"
             }
         ],
         "configuration": {
             "title": "zh-translate-en",
             "properties": {
-              "zh-translate-en.appId": {
-                "type": "string",
-                "default": "",
-                "description": "有道AppId"
-              },
-              "zh-translate-en.key": {
-                "type": "string",
-                "default": "",
-                "description": "有道秘钥"
-              }
+                "zh-translate-en.appId": {
+                    "type": "string",
+                    "default": "",
+                    "description": "有道AppId"
+                },
+                "zh-translate-en.key": {
+                    "type": "string",
+                    "default": "",
+                    "description": "有道秘钥"
+                },
+                "zh-translate-en.baiduAppId": {
+                    "type": "string",
+                    "default": "",
+                    "description": "百度AppId"
+                },
+                "zh-translate-en.baiduKey": {
+                    "type": "string",
+                    "default": "",
+                    "description": "百度秘钥"
+                }
             }
-          }
+        }
     },
     "scripts": {
         "package": "vsce package",
@@ -61,6 +82,7 @@
         "@vscode/test-electron": "^1.6.2",
         "eslint": "^8.1.0",
         "glob": "^7.1.7",
+        "iconv-lite": "^0.6.3",
         "mocha": "^9.1.3",
         "ts-loader": "^9.2.5",
         "typescript": "^4.4.4",

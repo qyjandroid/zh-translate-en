@@ -3,10 +3,29 @@ const CryptoJS = require("crypto-js");
 const rp = require('request-promise');
 
 
-var ydAppId="",ydAppKey="";
+var ydAppId="",ydAppKey="",baiduAppId="20200619000500482",baiduKey="2b3sWLVzytlIWz6jSuZq";
+
+/**
+ * 
+ * 初始化有道词典
+ * @export
+ * @param {string} appId 
+ * @param {string} key 
+ */
 export function initYDTrans(appId:string,key:string){
     ydAppId=appId,
     ydAppKey=key;
+}
+/**
+ * 
+ * 初始化百度词典
+ * @export
+ * @param {string} appId 
+ * @param {string} key 
+ */
+export function initBDTrans(appId:string,key:string){
+    baiduAppId=appId || baiduAppId,
+    baiduKey=key || baiduKey;
 }
 
 export async function ydTrans(query: string, signCode: number) {
@@ -102,8 +121,8 @@ function truncate(q: any) {
 
 
 export async function bdTrans(query: any) {
-    var appid = '20200619000500482';
-    var key = '2b3sWLVzytlIWz6jSuZq';
+    var appid = baiduAppId;
+    var key = baiduKey;
     var salt = (new Date).getTime();
     //var query = 'apple';
     // 多个query可以用\n连接  如 query='apple\norange\nbanana\npear'
