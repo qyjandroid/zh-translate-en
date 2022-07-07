@@ -135,7 +135,7 @@ async function getTransResult(text: string) {
         } else if (baiduResult) {
             curTransResult = {
                 original: baiduResult.query,
-                yd: baiduResult.resultData,
+                bd: baiduResult.resultData,
             };
         } else {
             curTransResult = null;
