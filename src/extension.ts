@@ -12,7 +12,7 @@ interface TransResultData {
     bd?: string;
 }
 
-let curTransResult = null as any;
+let curTransResult = {errCode:-1,data:null as any};
 
 async function startTrans(words: string) {
     const s = new Date().getTime();
@@ -115,7 +115,7 @@ async function getTransResult(text: string) {
 
     if (curText.length > 0 && isZH(curText)) {
         //做一层结果缓存
-        if (curTransResult && curTransResult.original === curText) {
+        if (curTransResult.errCode===0 && curTransResult.data.original === curText) {
             console.log("直接使用结果数据");
             return curTransResult;
         }
@@ -123,25 +123,38 @@ async function getTransResult(text: string) {
         const baiduResult = await bdTrans(curText);
         if (result && baiduResult) {
             curTransResult = {
-                original: result.query,
-                yd: result.resultData,
-                bd: baiduResult.resultData,
+                errCode:0,
+                data:{
+                    original: result.query,
+                    yd: result.resultData,
+                    bd: baiduResult.resultData,
+                }
             };
         } else if (result) {
             curTransResult = {
-                original: result.query,
-                yd: result.resultData,
+                errCode:0,
+                data:{
+                    original: result.query,
+                    yd: result.resultData,
+                }
             };
         } else if (baiduResult) {
             curTransResult = {
-                original: baiduResult.query,
-                bd: baiduResult.resultData,
+                errCode:0,
+                data:{
+                    original: baiduResult.query,
+                    bd: baiduResult.resultData,
+                }
             };
         } else {
-            curTransResult = null;
+            curTransResult = {
+                errCode:-200,
+                data:null
+            };
         }
         return curTransResult;
     }
+    return {errCode:-1,data:null};
 }
 
 /**
@@ -156,6 +169,9 @@ function getTransResultText(result: any) {
         if (key !== "original") {
             text += result[key] + ",";
         }
+    }
+    if(text.length>0){
+        text = text.substring(0,text.length-1);
     }
     return text;
 }
@@ -174,8 +190,8 @@ async function transReplace(statusBarItem:any) {
         const originalText = editor.document.getText(section);
         const transResult = await getTransResult(originalText);
         let replaceText = "";
-        if (transResult) {
-            const transText = getTransResultText(transResult);
+        if (transResult.errCode === 0) {
+            const transText = getTransResultText(transResult.data);
             replaceText = getBestTrans(transText);
         }
         editor.edit((editBuilder) => {
@@ -218,7 +234,6 @@ export function activate(context: vscode.ExtensionContext) {
         //初始化词典
         initYDTrans(appId as string, key as string);
     }
-
     context.subscriptions.push(
         vscode.languages.registerHoverProvider(
             {
@@ -232,22 +247,25 @@ export function activate(context: vscode.ExtensionContext) {
                     if (true) {
                         const content = document
                             .getText(document.getWordRangeAtPosition(position));
-                        const transResult: TransResultData = await getTransResult(content);
-                        if (transResult) {
-                            const transText = getTransResultText(transResult);
+                        const transResult = await getTransResult(content);
+                        if (transResult.errCode === 0) {
+                            const transResultData=transResult.data;
+                            const transText = getTransResultText(transResultData);
                             copyToClipboardFun(transText, statusBarItem);
-                            let str = `[原词]：${transResult.original},\n`;
-                            if (transResult.yd) {
-                                str += `[有道结果]：${transResult.yd},`;
+                            let str = `[原词]：${transResultData.original},\n`;
+                            if (transResultData.yd) {
+                                str += `[有道结果]：${transResultData.yd},`;
                             }
 
-                            if (transResult.bd) {
-                                str += `[百度结果]：${transResult.bd}`;
+                            if (transResultData.bd) {
+                                str += `[百度结果]：${transResultData.bd}`;
                             }
                             return new vscode.Hover(str);
-                        } else {
+                        } else if(transResult.errCode=== -200){
                             statusBarItem.text = "翻译失败";
                             return new vscode.Hover(`翻译失败`);
+                        }else{
+                            statusBarItem.text = "等待翻译";
                         }
                     }
                 },
