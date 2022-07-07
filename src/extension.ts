@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { ydTrans, bdTrans, initYDTrans, initBDTrans } from "./ydtran";
+import { ydTrans, bdTrans, initYDTrans, initBDTrans,googleTrans } from "./ydtran";
 const fs = require("fs");
 const exec = require("child_process").exec;
 const iconv = require("iconv-lite");
@@ -10,9 +10,15 @@ interface TransResultData {
     original: string;
     yd?: string;
     bd?: string;
+    google?:string;
 }
 
 let curTransResult = {errCode:-1,data:null as any};
+
+let baiduEngineFlag =true;
+let googleEngineFlag =true;
+let youdaoEngineFlag =true;
+
 
 async function startTrans(words: string) {
     const s = new Date().getTime();
@@ -116,37 +122,22 @@ async function getTransResult(text: string) {
     if (curText.length > 0 && isZH(curText)) {
         //做一层结果缓存
         if (curTransResult.errCode===0 && curTransResult.data.original === curText) {
-            console.log("直接使用结果数据");
             return curTransResult;
         }
-        const result = await startTrans(curText);
-        const baiduResult = await bdTrans(curText);
-        if (result && baiduResult) {
+        const googleResult = googleEngineFlag? await googleTrans(curText): null;
+        const result =youdaoEngineFlag? await startTrans(curText):null;
+        const baiduResult =baiduEngineFlag? await bdTrans(curText):null;
+        if (result || baiduResult ||googleResult) {
             curTransResult = {
                 errCode:0,
                 data:{
-                    original: result.query,
-                    yd: result.resultData,
-                    bd: baiduResult.resultData,
+                    original: curText,
+                    bd: baiduResult?.resultData,
+                    google:googleResult?.resultData,
+                    yd:result?.resultData
                 }
             };
-        } else if (result) {
-            curTransResult = {
-                errCode:0,
-                data:{
-                    original: result.query,
-                    yd: result.resultData,
-                }
-            };
-        } else if (baiduResult) {
-            curTransResult = {
-                errCode:0,
-                data:{
-                    original: baiduResult.query,
-                    bd: baiduResult.resultData,
-                }
-            };
-        } else {
+        }  else {
             curTransResult = {
                 errCode:-200,
                 data:null
@@ -166,7 +157,7 @@ function getTransResultText(result: any) {
     let text = "";
     for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
-        if (key !== "original") {
+        if (key !== "original" && result[key]) {
             text += result[key] + ",";
         }
     }
@@ -214,6 +205,10 @@ export function activate(context: vscode.ExtensionContext) {
     //获取秘钥
     const key = vscode.workspace.getConfiguration().get("zh-translate-en.key");
 
+    baiduEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.baidu") as boolean;
+    googleEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.google")  as boolean;
+    youdaoEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.youdao")  as boolean;
+
     //获取百度配置
     const userBaiduAppId = vscode.workspace
     .getConfiguration()
@@ -247,19 +242,27 @@ export function activate(context: vscode.ExtensionContext) {
                     if (true) {
                         const content = document
                             .getText(document.getWordRangeAtPosition(position));
+
                         const transResult = await getTransResult(content);
                         if (transResult.errCode === 0) {
                             const transResultData=transResult.data;
                             const transText = getTransResultText(transResultData);
                             copyToClipboardFun(transText, statusBarItem);
-                            let str = `[原词]：${transResultData.original},\n`;
+                            let str = `### [原词]：${transResultData.original}`;
+                            if(transResultData.google){
+                                str += `
+> * [谷歌结果]：${transResultData.google}`;
+                            }
                             if (transResultData.yd) {
-                                str += `[有道结果]：${transResultData.yd},`;
+                                str += `
+> * [有道结果]：${transResultData.yd}`;
                             }
 
                             if (transResultData.bd) {
-                                str += `[百度结果]：${transResultData.bd}`;
+                                str += `
+> * [百度结果]：${transResultData.bd}`;
                             }
+                            console.log("str===",str);
                             return new vscode.Hover(str);
                         } else if(transResult.errCode=== -200){
                             statusBarItem.text = "翻译失败";
