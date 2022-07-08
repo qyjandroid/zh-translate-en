@@ -1,8 +1,7 @@
 import MD5 from "./md5";
 const CryptoJS = require("crypto-js");
 const rp = require('request-promise');
-const google = require("@asmagin/google-translate-api");
-const tunnel = require('tunnel');
+
 
 
 var ydAppId="",ydAppKey="",baiduAppId="20200619000500482",baiduKey="2b3sWLVzytlIWz6jSuZq";
@@ -65,7 +64,7 @@ export async function ydTrans(query: string, signCode: number) {
     const api = "https://openapi.youdao.com/api";
     const endpoint = api + '?' + transData(options);
 
-    const data = await rp(endpoint, { json: true });
+    const data = await rp(endpoint, { json: true,timeout:1500 });
 
     if (data == null) {
         return null;
@@ -145,7 +144,7 @@ export async function bdTrans(query: any) {
     const api = "http://api.fanyi.baidu.com/api/trans/vip/translate";
     const endpoint = api + '?' + transData(options);
 
-    const result = await rp(endpoint, { json: true });
+    const result = await rp(endpoint, { json: true, timeout:1500 });
     if (result.trans_result == null) {
         return null;
     }
@@ -156,27 +155,3 @@ export async function bdTrans(query: any) {
     return {query:resultData.src,resultData:resultData.dst};
 }
 
-/**
- * 谷歌翻译
- * @param query 
- * @returns 
- */
-export async function googleTrans(query:any) {
-    const resultData = await google(query, { to:"en", tld: "cn" },{
-        agent: tunnel.httpsOverHttp({
-        proxy: { 
-          host: 'whateverhost',
-          proxyAuth: 'user:pass',
-          port: '8080',
-          headers: {
-            'User-Agent': 'Node'
-          }
-        }
-      }
-    )});
-
-    if(resultData && resultData.text){
-        return {query:query,resultData:resultData.text};
-    }
-    return null;
-}

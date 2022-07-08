@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { ydTrans, bdTrans, initYDTrans, initBDTrans,googleTrans } from "./ydtran";
+import { ydTrans, bdTrans, initYDTrans, initBDTrans } from "./ydtran";
 const fs = require("fs");
 const exec = require("child_process").exec;
 const iconv = require("iconv-lite");
@@ -16,8 +16,7 @@ interface TransResultData {
 let curTransResult = {errCode:-1,data:null as any};
 
 let baiduEngineFlag =true;
-let googleEngineFlag =true;
-let youdaoEngineFlag =true;
+let youdaoEngineFlag =false;
 
 
 async function startTrans(words: string) {
@@ -124,16 +123,14 @@ async function getTransResult(text: string) {
         if (curTransResult.errCode===0 && curTransResult.data.original === curText) {
             return curTransResult;
         }
-        const googleResult = googleEngineFlag? await googleTrans(curText): null;
         const result =youdaoEngineFlag? await startTrans(curText):null;
         const baiduResult =baiduEngineFlag? await bdTrans(curText):null;
-        if (result || baiduResult ||googleResult) {
+        if (result || baiduResult ) {
             curTransResult = {
                 errCode:0,
                 data:{
                     original: curText,
                     bd: baiduResult?.resultData,
-                    google:googleResult?.resultData,
                     yd:result?.resultData
                 }
             };
@@ -169,6 +166,7 @@ function getTransResultText(result: any) {
 
 async function transReplace(statusBarItem:any) {
     try {
+        getConfig();
         statusBarItem.text = "替换开始...";
         // 获取当前打开的文件的editor
         const editor = vscode.window.activeTextEditor;
@@ -195,18 +193,15 @@ async function transReplace(statusBarItem:any) {
     }
 }
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-    //获取配置
-    const appId = vscode.workspace
-        .getConfiguration()
-        .get("zh-translate-en.appId");
+function getConfig(){
+     //获取配置
+     const appId = vscode.workspace
+     .getConfiguration()
+     .get("zh-translate-en.appId");
     //获取秘钥
     const key = vscode.workspace.getConfiguration().get("zh-translate-en.key");
 
     baiduEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.baidu") as boolean;
-    googleEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.google")  as boolean;
     youdaoEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.youdao")  as boolean;
 
     //获取百度配置
@@ -220,15 +215,22 @@ export function activate(context: vscode.ExtensionContext) {
         initBDTrans(userBaiduAppId as string,userBaiduKey as string);
     }
 
+    if (appId && key) {
+        //初始化词典
+        initYDTrans(appId as string, key as string);
+    }
+}
+
+// this method is called when your extension is activated
+// your extension is activated the very first time the command is executed
+export function activate(context: vscode.ExtensionContext) {
+    getConfig();
     const statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Right
     );
     statusBarItem.text = "翻译插件success";
     statusBarItem.show();
-    if (appId && key) {
-        //初始化词典
-        initYDTrans(appId as string, key as string);
-    }
+   
     context.subscriptions.push(
         vscode.languages.registerHoverProvider(
             {
@@ -240,6 +242,7 @@ export function activate(context: vscode.ExtensionContext) {
                     position: vscode.Position
                 ) => {
                     if (true) {
+                        getConfig();
                         const content = document
                             .getText(document.getWordRangeAtPosition(position));
 
@@ -249,10 +252,7 @@ export function activate(context: vscode.ExtensionContext) {
                             const transText = getTransResultText(transResultData);
                             copyToClipboardFun(transText, statusBarItem);
                             let str = `### [原词]：${transResultData.original}`;
-                            if(transResultData.google){
-                                str += `
-> * [谷歌结果]：${transResultData.google}`;
-                            }
+
                             if (transResultData.yd) {
                                 str += `
 > * [有道结果]：${transResultData.yd}`;
