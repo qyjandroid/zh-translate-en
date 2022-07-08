@@ -1,10 +1,11 @@
+/* eslint-disable eqeqeq */
 import MD5 from "./md5";
 const CryptoJS = require("crypto-js");
 const rp = require('request-promise');
 
 
 
-var ydAppId="",ydAppKey="",baiduAppId="20200619000500482",baiduKey="2b3sWLVzytlIWz6jSuZq";
+var ydAppId="",ydAppKey="",baiduAppId="20200619000500482",baiduKey="2b3sWLVzytlIWz6jSuZq",caiyunToken="";
 
 /**
  * 
@@ -29,9 +30,11 @@ export function initBDTrans(appId:string,key:string){
     baiduKey=key || baiduKey;
 }
 
+export function initCaiYunToken(token:string){
+    caiyunToken=token;
+}
+
 export async function ydTrans(query: string, signCode: number) {
-    // var appKey = '1d325fe725dcbf33';
-    // var key = 'QTcG2KlRc6NdMlp7MXtkRMGS6mWrZfJV';//注意：暴露appSecret，有被盗用造成损失的风险
     var appKey= ydAppId;
     var key= ydAppKey;
     if(!appKey || !key){
@@ -153,5 +156,27 @@ export async function bdTrans(query: any) {
         return {query:resultData[0].src,resultData:resultData[0].dst};
     }
     return {query:resultData.src,resultData:resultData.dst};
+}
+
+export async function caiyunTrans(query: any) {
+    const api = "http://api.interpreter.caiyunai.com/v1/translator";
+    // const token = "2eysjkikkp5l6srqrznr";
+    const token = caiyunToken;
+    const payload = {
+        "source": [query],
+        "trans_type": "zh2en",
+        "request_id": "demo",
+    };
+    const headers = {
+        "content-type": "application/json",
+        "x-authorization": "token " + token,
+    };
+
+
+    const result = await rp({uri:api,method:'post',body:payload,headers:headers, json: true, timeout:1500 });
+    if(result && result.target && result.target.length>0){
+        return {query:query,resultData:result.target[0]};
+    }
+    return null;
 }
 

@@ -3,7 +3,7 @@
     "publisher": "quanyj",
     "displayName": "中文翻译英文插件",
     "description": "程序员变量命名神器",
-    "version": "0.0.9",
+    "version": "0.1.0",
     "engines": {
         "vscode": "^1.63.0"
     },
@@ -26,7 +26,11 @@
             },
             {
                 "command": "zh-en.transReplace",
-                "title": "英文替换中文"
+                "title": "翻译并替换内容"
+            },
+            {
+                "command": "zh-en.transCopy",
+                "title": "翻译内容复制到剪切板"
             }
         ],
         "keybindings": [
@@ -36,6 +40,20 @@
                 "mac": "ctrl+alt+r"
             }
         ],
+        "menus": {
+            "editor/context": [
+                {
+                  "when": "editorHasSelection",
+                  "command": "zh-en.transCopy",
+                  "group": "navigation"
+                },
+                {
+                    "when": "editorHasSelection",
+                    "command": "zh-en.transReplace",
+                    "group": "navigation"
+                }
+              ]
+        },
         "configuration": {
             "title": "zh-translate-en",
             "properties": {
@@ -54,6 +72,11 @@
                     "default": "",
                     "description": "百度AppId"
                 },
+                "zh-translate-en.caiyunToken": {
+                    "type": "string",
+                    "default": "",
+                    "description": "彩云令牌"
+                },
                 "zh-translate-en.baiduKey": {
                     "type": "string",
                     "default": "",
@@ -68,6 +91,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "启用有道"
+                },
+                "zh-translate-en.caiyun": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "启用彩云"
                 }
             }
         }

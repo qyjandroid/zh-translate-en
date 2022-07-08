@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { ydTrans, bdTrans, initYDTrans, initBDTrans } from "./ydtran";
+import { ydTrans, bdTrans, initYDTrans, initBDTrans,caiyunTrans,initCaiYunToken } from "./ydtran";
 const fs = require("fs");
 const exec = require("child_process").exec;
 const iconv = require("iconv-lite");
@@ -14,9 +14,12 @@ interface TransResultData {
 }
 
 let curTransResult = {errCode:-1,data:null as any};
+//翻译状态
+let transLoading= 0;
 
 let baiduEngineFlag =true;
 let youdaoEngineFlag =false;
+let caiyunEngineFlag =false;
 
 
 async function startTrans(words: string) {
@@ -26,37 +29,29 @@ async function startTrans(words: string) {
 }
 
 function isZH(str: string) {
-    const reg = /^[\u4E00-\u9FA5]+$/g;
-    if (!reg.test(str)) {
-        return false;
-    } else {
-        return true;
-    }
+     // 正则快速判断英文
+  if (/^[a-zA-Z\d\s\/\-\._]+$/.test(str)) {
+    return false;
+  }
+  return true;
+    // const reg = /^[\u4E00-\u9FA5]+$/g;
+    // if (!reg.test(str)) {
+    //     return false;
+    // } else {
+    //     return true;
+    // }
 }
 
-function copyToClipboardFun(content: string, statusBarItem: any) {
-    try {
+async function copyToClipboardFun(content: string, statusBarItem: any) {
+    try{
         statusBarItem.text = "复制中...";
-        content = iconv.encode(content, "gbk");
-        let resultFileName = "result.txt";
-        let command = `clip < ${resultFileName} `;
-        fs.writeFileSync(resultFileName, content);
-
-        var cmdFileName = "copy.bat";
-        fs.writeFileSync(cmdFileName, command);
-        exec(cmdFileName, function (err: any, stdout: any, stderr: any) {
-            if (err || stderr) {
-                console.log(err, stdout, stderr);
-                statusBarItem.text = "复制失败";
-                return;
-            }
-            fs.unlinkSync(cmdFileName);
-            fs.unlinkSync(resultFileName);
-            statusBarItem.text = "复制到剪切板";
-        });
-    } catch (e) {
-        statusBarItem.text = "复制到失败";
+        await vscode.env.clipboard.writeText(content);
+        statusBarItem.text = "复制成功";
+    }catch(e){
+        statusBarItem.text = "复制失败";
+        vscode.window.showErrorMessage(`复制失败:${e}`);
     }
+    
 }
 
 /**
@@ -115,14 +110,22 @@ function getBestTrans(str: string) {
  * @returns
  */
 async function getTransResult(text: string) {
-    const content = text.trim();
-    let curText = content.replace(/[\r\n\s]+/g, "");
-
+    const curText = text.trim();
+    // let curText = content.replace(/[\r\n\s]+/g, "");
     if (curText.length > 0 && isZH(curText)) {
+        console.log("翻译的英文:",curText);
         //做一层结果缓存
         if (curTransResult.errCode===0 && curTransResult.data.original === curText) {
             return curTransResult;
         }
+        if(transLoading!==0){
+            return {
+                errCode:-2, //翻译中
+                data:null
+            };
+        }
+        transLoading=1;
+        const caiyunResult = caiyunEngineFlag? await caiyunTrans(curText):null;
         const result =youdaoEngineFlag? await startTrans(curText):null;
         const baiduResult =baiduEngineFlag? await bdTrans(curText):null;
         if (result || baiduResult ) {
@@ -131,7 +134,8 @@ async function getTransResult(text: string) {
                 data:{
                     original: curText,
                     bd: baiduResult?.resultData,
-                    yd:result?.resultData
+                    yd:result?.resultData,
+                    cy: caiyunResult?.resultData
                 }
             };
         }  else {
@@ -140,9 +144,12 @@ async function getTransResult(text: string) {
                 data:null
             };
         }
-        return curTransResult;
+    }else{
+        curTransResult={errCode:-1,data:null};
     }
-    return {errCode:-1,data:null};
+    //翻译结束
+    transLoading=0;
+    return curTransResult;
 }
 
 /**
@@ -165,8 +172,8 @@ function getTransResultText(result: any) {
 }
 
 async function transReplace(statusBarItem:any) {
+    console.log("调用替换");
     try {
-        getConfig();
         statusBarItem.text = "替换开始...";
         // 获取当前打开的文件的editor
         const editor = vscode.window.activeTextEditor;
@@ -189,28 +196,63 @@ async function transReplace(statusBarItem:any) {
         });
     } catch (e) {
         console.log("替换异常==", e);
-        statusBarItem.text = `查询异常`;
+        statusBarItem.text = `替换异常`;
+        vscode.window.showErrorMessage(`替换异常:${e}`);
     }
 }
 
-function getConfig(){
+async function transCopy(statusBarItem:any) {
+    try {
+        statusBarItem.text = "网络翻译中...";
+        // 获取当前打开的文件的editor
+        const editor = vscode.window.activeTextEditor;
+        // editor === undefined 表示没有打开的文件
+        if (!editor) {
+            return;
+        }
+        // 当前被选中文本的位置信息数组（实际上就是range组成的数组）
+        const section = editor.selection;
+        const originalText = editor.document.getText(section);
+        const transResult = await getTransResult(originalText);
+  
+        if (transResult.errCode === 0) {
+            const transResultData=transResult.data;
+            const transText = getTransResultText(transResultData);
+            await copyToClipboardFun(transText, statusBarItem);
+        }else{
+            statusBarItem.text = "翻译失败...";
+        }
+        
+    } catch (e) {
+        statusBarItem.text = `翻译异常`;
+        vscode.window.showErrorMessage(`翻译异常:${e}`);
+    }
+}
+
+
+function updateConfig(){
      //获取配置
      const appId = vscode.workspace
      .getConfiguration()
      .get("zh-translate-en.appId");
     //获取秘钥
-    const key = vscode.workspace.getConfiguration().get("zh-translate-en.key");
+    const key = vscode.workspace.getConfiguration().get("zh-translate-en.key","");
 
-    baiduEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.baidu") as boolean;
-    youdaoEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.youdao")  as boolean;
+    caiyunEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.caiyun",false);
+    baiduEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.baidu",true);
+    youdaoEngineFlag =vscode.workspace.getConfiguration().get("zh-translate-en.youdao",false);
 
     //获取百度配置
     const userBaiduAppId = vscode.workspace
     .getConfiguration()
-    .get("zh-translate-en.baiduAppId")+"";
+    .get("zh-translate-en.baiduAppId","");
     //获取百度秘钥
-    const userBaiduKey = vscode.workspace.getConfiguration().get("zh-translate-en.baiduKey")+"";
+    const userBaiduKey = vscode.workspace.getConfiguration().get("zh-translate-en.baiduKey","");
 
+    const userCaiyunToken = vscode.workspace
+    .getConfiguration()
+    .get("zh-translate-en.caiyunToken","");
+    
     if(userBaiduAppId && userBaiduKey){
         initBDTrans(userBaiduAppId as string,userBaiduKey as string);
     }
@@ -219,12 +261,18 @@ function getConfig(){
         //初始化词典
         initYDTrans(appId as string, key as string);
     }
+
+    if(userCaiyunToken){
+        initCaiYunToken(userCaiyunToken);
+    }
 }
+
+
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-    getConfig();
+    updateConfig();
     const statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Right
     );
@@ -242,20 +290,20 @@ export function activate(context: vscode.ExtensionContext) {
                     position: vscode.Position
                 ) => {
                     if (true) {
-                        getConfig();
                         const content = document
                             .getText(document.getWordRangeAtPosition(position));
-
                         const transResult = await getTransResult(content);
                         if (transResult.errCode === 0) {
                             const transResultData=transResult.data;
-                            const transText = getTransResultText(transResultData);
-                            copyToClipboardFun(transText, statusBarItem);
                             let str = `### [原词]：${transResultData.original}`;
 
                             if (transResultData.yd) {
                                 str += `
 > * [有道结果]：${transResultData.yd}`;
+                            }
+                            if (transResultData.cy) {
+                                str += `
+> * [彩云结果]：${transResultData.cy}`;
                             }
 
                             if (transResultData.bd) {
@@ -267,6 +315,8 @@ export function activate(context: vscode.ExtensionContext) {
                         } else if(transResult.errCode=== -200){
                             statusBarItem.text = "翻译失败";
                             return new vscode.Hover(`翻译失败`);
+                        }else if(transResult.errCode === -2){
+                            statusBarItem.text = "翻译中";
                         }else{
                             statusBarItem.text = "等待翻译";
                         }
@@ -276,6 +326,7 @@ export function activate(context: vscode.ExtensionContext) {
         )
     );
 
+    //翻译并替换
     let disposable = vscode.commands.registerCommand(
         "zh-en.transReplace",
         () => {
@@ -283,6 +334,22 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
     context.subscriptions.push(disposable);
+
+    //翻译并复制
+    let transCopyDisposable = vscode.commands.registerCommand(
+        "zh-en.transCopy",
+        () => {
+            transCopy(statusBarItem);
+        }
+    );
+    
+    context.subscriptions.push(transCopyDisposable);
+
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(
+        e => {
+            updateConfig();
+        }
+      ));
 }
 
 // this method is called when your extension is deactivated
