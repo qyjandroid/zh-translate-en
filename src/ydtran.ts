@@ -160,7 +160,6 @@ export async function bdTrans(query: any) {
 
 export async function caiyunTrans(query: any) {
     const api = "http://api.interpreter.caiyunai.com/v1/translator";
-    // const token = "2eysjkikkp5l6srqrznr";
     const token = caiyunToken;
     const payload = {
         "source": [query],

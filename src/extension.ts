@@ -2,9 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import { ydTrans, bdTrans, initYDTrans, initBDTrans,caiyunTrans,initCaiYunToken } from "./ydtran";
-const fs = require("fs");
-const exec = require("child_process").exec;
-const iconv = require("iconv-lite");
+// import MyCompletionItemProvider from './MyCompletionItemProvider';
 
 interface TransResultData {
     original: string;
@@ -29,17 +27,11 @@ async function startTrans(words: string) {
 }
 
 function isZH(str: string) {
-     // 正则快速判断英文
-  if (/^[a-zA-Z\d\s\/\-\._]+$/.test(str)) {
-    return false;
-  }
-  return true;
-    // const reg = /^[\u4E00-\u9FA5]+$/g;
-    // if (!reg.test(str)) {
-    //     return false;
-    // } else {
-    //     return true;
-    // }
+    const reg = /^[\u4E00-\u9FA5]+$/g;
+    if (!reg.test(str)) {
+        return false;
+    } 
+    return true;
 }
 
 async function copyToClipboardFun(content: string, statusBarItem: any) {
@@ -125,6 +117,7 @@ async function getTransResult(text: string) {
             };
         }
         transLoading=1;
+
         const caiyunResult = caiyunEngineFlag? await caiyunTrans(curText):null;
         const result =youdaoEngineFlag? await startTrans(curText):null;
         const baiduResult =baiduEngineFlag? await bdTrans(curText):null;
@@ -292,6 +285,9 @@ export function activate(context: vscode.ExtensionContext) {
                     if (true) {
                         const content = document
                             .getText(document.getWordRangeAtPosition(position));
+                        if(content && content.length>50){
+                            return;
+                        }
                         const transResult = await getTransResult(content);
                         if (transResult.errCode === 0) {
                             const transResultData=transResult.data;
@@ -325,6 +321,15 @@ export function activate(context: vscode.ExtensionContext) {
             }
         )
     );
+
+
+    // const provider = vscode.languages.registerCompletionItemProvider(
+    //     {
+    //         pattern: "**",
+    //         scheme:'file'
+    //     },new MyCompletionItemProvider(),".");
+
+    // context.subscriptions.push(provider);
 
     //翻译并替换
     let disposable = vscode.commands.registerCommand(
