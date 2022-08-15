@@ -3,7 +3,7 @@
     "publisher": "quanyj",
     "displayName": "中文翻译英文插件",
     "description": "程序员变量命名神器",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "engines": {
         "vscode": "^1.63.0"
     },
