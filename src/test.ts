@@ -8,7 +8,7 @@ async function startTrans(words: string) {
 
 
 bdTrans("排行榜").then((res)=>{
-    console.log("res==",res)
+    console.log("res==",res);
 }).catch((err)=>{
     console.log("err====",err);
 })
