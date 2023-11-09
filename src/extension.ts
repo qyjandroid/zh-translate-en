@@ -5,7 +5,7 @@ import {  initYDTrans, initBDTrans,initCaiYunToken } from "./ydtran";
 import MyCompletionItemProvider from './MyCompletionItemProvider';
 import transUtils from "./transUtils";
 
-const {getTransResult,transCopy,transReplace, setBaiduEngineFlag,setCaiyunEngineFlag,setYoudaoEngineFlag}=transUtils;
+const {getTransResult,transCopy,enTransZh,transReplace, setBaiduEngineFlag,setCaiyunEngineFlag,setYoudaoEngineFlag}=transUtils;
 
 interface TransResultData {
     original: string;
@@ -143,8 +143,18 @@ export function activate(context: vscode.ExtensionContext) {
             transCopy(statusBarItem);
         }
     );
-    
     context.subscriptions.push(transCopyDisposable);
+
+
+    let enToZh = vscode.commands.registerCommand(
+        "en-zh",
+        () => {
+            enTransZh(statusBarItem);
+        }
+    );
+    context.subscriptions.push(enToZh);
+
+
 
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(
         e => {

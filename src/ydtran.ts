@@ -34,7 +34,7 @@ export function initCaiYunToken(token:string){
     caiyunToken=token;
 }
 
-export async function ydTrans(query: string, signCode: number) {
+export async function ydTrans(query: string, signCode: number,toLanguage:string) {
     var appKey= ydAppId;
     var key= ydAppKey;
     if(!appKey || !key){
@@ -43,8 +43,8 @@ export async function ydTrans(query: string, signCode: number) {
     var salt = (new Date).getTime();
     var curtime = Math.round(new Date().getTime() / 1000);
     // 多个query可以用\n连接  如 query='apple\norange\nbanana\npear'
-    var from = 'zh-CHS';
-    var to = 'en';
+    var from = 'auto';
+    var to = toLanguage =='en'?"en":"zh-CHS";
     var str1 = appKey + truncate(query) + salt + curtime + key;
     var vocabId = '您的用户词表ID';
     //console.log('---',str1);
@@ -107,14 +107,14 @@ function transData(data: any) {
 }
 
 function mergeYDData(arrData1: any, arrData2: any) {
-    for (let i = 0; i < arrData2.length; i++) {
-        let item = arrData2[i];
-        if (arrData1.indexOf(item) >= 0) {
-            continue;
-        }
-        arrData1.push(item);
-    }
-    return arrData1;
+    // for (let i = 0; i < arrData2.length; i++) {
+    //     let item = arrData2[i];
+    //     if (arrData1.indexOf(item) >= 0) {
+    //         continue;
+    //     }
+    //     arrData1.push(item);
+    // }
+    return arrData2;
 }
 
 function truncate(q: any) {
@@ -124,14 +124,14 @@ function truncate(q: any) {
 }
 
 
-export async function bdTrans(query: any) {
+export async function bdTrans(query: any,toLanguage:string) {
     var appid = baiduAppId;
     var key = baiduKey;
     var salt = (new Date).getTime();
     //var query = 'apple';
     // 多个query可以用\n连接  如 query='apple\norange\nbanana\npear'
-    var from = 'zh';
-    var to = 'en';
+    var from = 'auto';
+    var to = toLanguage=='en'?"en":"zh";
     var str1 = appid + query + salt + key;
     var sign = MD5(str1);
 
@@ -158,12 +158,12 @@ export async function bdTrans(query: any) {
     return {query:resultData.src,resultData:resultData.dst};
 }
 
-export async function caiyunTrans(query: any) {
+export async function caiyunTrans(query: any,to:string) {
     const api = "http://api.interpreter.caiyunai.com/v1/translator";
     const token = caiyunToken;
     const payload = {
         "source": [query],
-        "trans_type": "zh2en",
+        "trans_type": to==="en"? "zh2en":"en2zh",
         "request_id": "demo",
     };
     const headers = {
