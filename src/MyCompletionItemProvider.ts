@@ -12,7 +12,6 @@ export default class MyCompletionItemProvider implements vscode.CompletionItemPr
         }
         const transResult = await getTransResult(content);
         const list:vscode.CompletionItem[]=[];
-        console.log("提示结果===",transResult);
         if (transResult.errCode === 0) {
                     const transResultData=transResult.data;
                     let str = `原词-${transResultData.original}`;
@@ -30,8 +29,6 @@ export default class MyCompletionItemProvider implements vscode.CompletionItemPr
                     }
          
         }
-        console.log("获取的list的长度==",list.length);
-        console.log("获取的list==",list);
 
         return list;
 

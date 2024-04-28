@@ -41,7 +41,7 @@ async function startTrans(words: string,to:string) {
 }
 
 function isZH(str: string) {
-    const reg = /^[\u4E00-\u9FA5]+$/g;
+    const reg = /[\u4e00-\u9fa5]+(?:[\u3002\uff1f\uff01][\r\n]?)*/g;
     if (!reg.test(str)) {
         return false;
     } 
@@ -49,10 +49,10 @@ function isZH(str: string) {
 }
 
 function isEnWord(str:string){
-    const reg = /^[A-Za-z]+('[a-zA-Z-]+|[a-zA-Z-\s]*)$/g;
-    if (!reg.test(str)) {
-        return false;
-    } 
+    // const reg = /^[A-Za-z]+('[a-zA-Z-]+|[a-zA-Z-\s]*)$/g;
+    // if (!reg.test(str)) {
+    //     return false;
+    // } 
     return true;
 }
 
@@ -94,7 +94,6 @@ function getBestTrans(str: string) {
                 }
             }
         }
-        console.log("resultMap=",resultMap);
 
         let bestResult = {
             key: "",
@@ -113,7 +112,6 @@ function getBestTrans(str: string) {
             }
         }
 
-        console.log("bestResult=",bestResult);
         if (bestResult.value > 1) {
             return bestResult.key;
         }
@@ -133,13 +131,12 @@ async function getTransResult(text: string,to:string="en") {
     try{
         let curText = text.trim();
         const isTextOK=to==="en"? isZH(curText):isEnWord(curText);
-        if(isEnWord(curText)){
-            //英文
-            const strArray = curText.split(/(?=[A-Z])/);
-            curText=strArray.join(" ");
-        }
+        // if(isEnWord(curText)){
+        //     //英文
+        //     const strArray = curText.split(/(?=[A-Z])/);
+        //     curText=strArray.join(" ");
+        // }
         if (curText.length > 0 && isTextOK) {
-            console.log("翻译的文本:",curText);
             //做一层结果缓存
             if (curTransResult.errCode===0 && curTransResult.data.original === curText) {
                 return curTransResult;
@@ -209,7 +206,6 @@ function getTransResultText(result: any) {
 }
 
 async function transReplace(statusBarItem:any) {
-    console.log("调用替换");
     try {
         statusBarItem.text = "替换开始...";
         // 获取当前打开的文件的editor
@@ -309,5 +305,6 @@ export default {
     setYoudaoEngineFlag,
     getBaiduEngineFlag,
     getYoudaoEngineFlag,
-    getCaiyunEngineFlag
+    getCaiyunEngineFlag,
+    isZH:isZH,
 };

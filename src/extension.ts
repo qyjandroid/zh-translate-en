@@ -5,7 +5,7 @@ import {  initYDTrans, initBDTrans,initCaiYunToken } from "./ydtran";
 import MyCompletionItemProvider from './MyCompletionItemProvider';
 import transUtils from "./transUtils";
 
-const {getTransResult,transCopy,enTransZh,transReplace, setBaiduEngineFlag,setCaiyunEngineFlag,setYoudaoEngineFlag}=transUtils;
+const {getTransResult,transCopy,enTransZh,transReplace, setBaiduEngineFlag,setCaiyunEngineFlag,setYoudaoEngineFlag,isZH}=transUtils;
 
 interface TransResultData {
     original: string;
@@ -81,7 +81,12 @@ export function activate(context: vscode.ExtensionContext) {
                     if (true) {
                         const content = document
                             .getText(document.getWordRangeAtPosition(position));
+
+                       
                         if(content && content.length>50){
+                            return;
+                        }
+                        if(!isZH(content.trim())){
                             return;
                         }
                         const transResult = await getTransResult(content);
@@ -102,7 +107,6 @@ export function activate(context: vscode.ExtensionContext) {
                                 str += `
 > * [百度结果]：${transResultData.bd}`;
                             }
-                            console.log("str===",str);
                             return new vscode.Hover(str);
                         } else if(transResult.errCode=== -200){
                             statusBarItem.text = "翻译失败";
